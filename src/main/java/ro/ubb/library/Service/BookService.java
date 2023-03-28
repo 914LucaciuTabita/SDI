@@ -2,12 +2,16 @@ package ro.ubb.library.Service;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import ro.ubb.library.DTO.BookDTO;
+import ro.ubb.library.DTO.BorrowingDTO;
 import ro.ubb.library.Model.Book;
-import ro.ubb.library.Model.IBookRepository;
+import ro.ubb.library.Repository.IBookRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class BookService implements IBookService{
@@ -19,6 +23,10 @@ public class BookService implements IBookService{
         return repository.findAll();
     }
 
+    public Optional<Book> getBook(Long id) {
+        return repository.findById(id);
+    }
+
     @Override
     public Boolean addBook(Book book) {
         if (book.getId() != null && repository.existsById(book.getId())) {
@@ -28,8 +36,9 @@ public class BookService implements IBookService{
         return true;
     }
 
-    public void addBook(String title, String author, String genre, String type, String description) {
-        Book book = Book.builder().title(title).author(author).genre(genre).type(type).description(description).build();
+    public void addBook(String title, String genre, String type, String description, Integer pages) {
+        //Book book = Book.builder().title(title).genre(genre).type(type).description(description).pages(pages).build();
+        Book book = new Book(title, genre, type, description, pages);
         repository.save(book);
     }
 
@@ -42,26 +51,51 @@ public class BookService implements IBookService{
     }
 
     @Transactional
-    public Boolean updateBook(Long id, String title, String author, String genre, String type, String description) {
+    public Boolean updateBook(Long id, String title, String genre, String type, String description, Integer pages) {
         Optional<Book> bookOpt = repository.findById(id);
         if (bookOpt.isEmpty()) {
             return false;
         }
         Book book = bookOpt.get();
         book.setTitle(title);
-        book.setAuthor(author);
         book.setGenre(genre);
         book.setType(type);
         book.setDescription(description);
+        book.setPages(pages);
         return true;
     }
 
     @Override
-    public Boolean updateBook(Book book) {
-        if (!repository.existsById(book.getId())) {
-            return false;
+    public Optional<Book> updateBook(Book book) {
+        Optional<Book> oldBook = repository.findById(book.getId());
+        if (oldBook.isEmpty()) {
+            return oldBook;
         }
-        repository.save(book);
-        return true;
+        Book oldBook1 = oldBook.get();
+        oldBook1.setTitle(book.getTitle());
+        oldBook1.setType(book.getType());
+        oldBook1.setGenre(book.getGenre());
+        oldBook1.setDescription(book.getDescription());
+        oldBook1.setPages(book.getPages());
+
+        repository.save(oldBook1);
+        return oldBook;
     }
+
+    @Override
+    public List<Book> findByAuthorId(Long id) {
+        return repository.findBooksByAuthorId(id);
+    }
+
+    @Override
+    public List<Book> findBooksByPagesGreaterThan(Integer pages) {
+        return repository.findBooksByPagesGreaterThan(pages);
+    }
+
+    @Override
+    public List<Book> findBooksSortedByAuthorNumberOfBooks() {
+        return repository.findBooksSortedByAuthorNumOfBooks();
+    }
+
+
 }
